@@ -19,24 +19,24 @@ const QUERY_URL = ACTIVITY_URL + "queryMyActivity"
 const DOWNLOAD_URL = ACTIVITY_URL + "getDownloadUrl/"
 
 type Config struct {
-	username string
-	password string
-	pageSize int
+	Username string
+	Password string
+	PageSize int
 }
 
 type IgpsportSync struct {
-	config      Config
+	Config      Config
 	client      *http.Client
-	accessToken string
+	AccessToken string
 }
 
 // New creates a new instance of IgpsportSync with the provided configuration.
 func (s *IgpsportSync) init(config Config) {
-	s.config = config
+	s.Config = config
 	s.client = &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	s.login()
+	s.Login()
 }
 
 // New creates a new instance of IgpsportSync with the provided configuration.
@@ -55,7 +55,7 @@ func (s *IgpsportSync) GetActivityList(pageNo int, ext Extension) (resp *Activit
 	// Build query parameters
 	query := map[string]string{
 		"pageNo":   strconv.Itoa(pageNo),
-		"pageSize": strconv.Itoa(s.config.pageSize),
+		"pageSize": strconv.Itoa(s.Config.PageSize),
 		"sort":     "1",
 		"reqType":  string(ext),
 	}
@@ -370,11 +370,11 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 }
 
 // try to login and get access token
-func (s *IgpsportSync) login() error {
+func (s *IgpsportSync) Login() error {
 	req := map[string]string{
 		"appId":    "igpsport-web",
-		"username": s.config.username,
-		"password": s.config.password,
+		"username": s.Config.Username,
+		"password": s.Config.Password,
 	}
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -406,13 +406,13 @@ func (s *IgpsportSync) login() error {
 	}
 
 	// Save access token for future requests
-	s.accessToken = access_token
+	s.AccessToken = access_token
 
 	return nil
 }
 
 func (s *IgpsportSync) addAuthHeader(req *http.Request) {
-	if s.accessToken != "" {
-		req.Header.Add("Authorization", "Bearer "+s.accessToken)
+	if s.AccessToken != "" {
+		req.Header.Add("Authorization", "Bearer "+s.AccessToken)
 	}
 }

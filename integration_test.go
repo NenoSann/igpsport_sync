@@ -62,25 +62,24 @@ func TestIntegration_Login(t *testing.T) {
 	}
 
 	config := Config{
-		username: username,
-		password: password,
-		pageSize: 20,
+		Username: username,
+		Password: password,
+		PageSize: 20,
 	}
 
 	// Create instance with custom client to avoid auto-login
 	igpsport := &IgpsportSync{
-		config: config,
-		client: nil, // Will be set in init
+		Config: config,
 	}
 
 	// Manually initialize
 	igpsport.init(config)
 
 	// Verify access token was obtained
-	if igpsport.accessToken == "" {
+	if igpsport.AccessToken == "" {
 		t.Error("Failed to obtain access token after login")
 	} else {
-		t.Logf("Successfully obtained access token: %s...", igpsport.accessToken[:20])
+		t.Logf("Successfully obtained access token: %s...", igpsport.AccessToken[:20])
 	}
 }
 
@@ -107,19 +106,18 @@ func TestIntegration_GetActivityList(t *testing.T) {
 	}
 
 	config := Config{
-		username: username,
-		password: password,
-		pageSize: 20,
+		Username: username,
+		Password: password,
+		PageSize: 20,
 	}
 
 	// Create instance and login
 	igpsport := &IgpsportSync{
-		config: config,
-		client: nil,
+		Config: config,
 	}
 	igpsport.init(config)
 
-	if igpsport.accessToken == "" {
+	if igpsport.AccessToken == "" {
 		t.Fatal("Failed to login before testing GetActivityList")
 	}
 
