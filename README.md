@@ -1,6 +1,7 @@
 # igpsport_sync
 
-A Go library for syncing activities from iGPSport to your application. Download activity data in multiple formats (FIT, GPX, TCX) with support for serial or concurrent downloads.
+A Go library for syncing activities from iGPSport to your application. Download activity data in multiple formats (FIT, GPX, TCX) with support for serial or concurrent downloads.  
+
 This Library is a golang implemet from https://github.com/yihong0618/running_page/blob/master/run_page/igpsport_sync.py
 
 ## Features
