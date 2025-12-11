@@ -31,19 +31,27 @@ type IgpsportSync struct {
 }
 
 // New creates a new instance of IgpsportSync with the provided configuration.
-func (s *IgpsportSync) init(config Config) {
+func (s *IgpsportSync) init(config Config) error {
 	s.Config = config
 	s.client = &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	s.Login()
+	err := s.Login()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // New creates a new instance of IgpsportSync with the provided configuration.
-func New(config Config) *IgpsportSync {
+func New(config Config) (*IgpsportSync, error) {
 	s := &IgpsportSync{}
-	s.init(config)
-	return s
+	err := s.init(config)
+
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 // query activity list
