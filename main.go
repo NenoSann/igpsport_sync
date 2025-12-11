@@ -27,7 +27,7 @@ type Config struct {
 type IgpsportSync struct {
 	Config      Config
 	client      *http.Client
-	AccessToken string
+	LoginResult *LoginResult
 }
 
 // New creates a new instance of IgpsportSync with the provided configuration.
@@ -414,13 +414,13 @@ func (s *IgpsportSync) Login() error {
 	}
 
 	// Save access token for future requests
-	s.AccessToken = access_token
+	s.LoginResult = &retJson.Data
 
 	return nil
 }
 
 func (s *IgpsportSync) addAuthHeader(req *http.Request) {
-	if s.AccessToken != "" {
-		req.Header.Add("Authorization", "Bearer "+s.AccessToken)
+	if s.LoginResult != nil && s.LoginResult.Access_token != "" {
+		req.Header.Add("Authorization", "Bearer "+s.LoginResult.Access_token)
 	}
 }

@@ -26,14 +26,16 @@ type ActivityListResponse struct {
 type LoginResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	Data    struct {
-		Token_type    string `json:"token_type"`
-		Access_token  string `json:"access_token"`
-		Refresh_token string `json:"refresh_token"`
-		Expires_in    int    `json:"expires_in"`
-		Scope         string `json:"scope"`
-		BoundPhone    bool   `json:"boundPhone"`
-	}
+	Data    LoginResult
+}
+
+type LoginResult struct {
+	Token_type    string `json:"token_type"`
+	Access_token  string `json:"access_token"`
+	Refresh_token string `json:"refresh_token"`
+	Expires_in    int    `json:"expires_in"`
+	Scope         string `json:"scope"`
+	BoundPhone    bool   `json:"boundPhone"`
 }
 
 type DownloadedActivity struct {
