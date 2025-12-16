@@ -101,16 +101,14 @@ func (s *IgpsportSync) GetActivityList(pageNo int, ext Extension) (resp *Activit
 	return &activityListResp, nil
 }
 
-func (s *IgpsportSync) GetACtivityDownloadUrl(ride_id int) (*string, error) {
-	req, err := http.NewRequest("GET", DOWNLOAD_URL, nil)
+func (s *IgpsportSync) GetActivityDownloadUrl(ride_id int) (*string, error) {
+	// Build URL with ride_id as path parameter (not query parameter)
+	url := DOWNLOAD_URL + strconv.Itoa(ride_id)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add query parameters
-	q := req.URL.Query()
-	q.Add("ride_id", strconv.Itoa(ride_id))
-	req.URL.RawQuery = q.Encode()
 	s.addAuthHeader(req)
 
 	// send http request
@@ -186,7 +184,7 @@ func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCal
 		// Process each activity on this page
 		for _, row := range resp.Data.Rows {
 			// Get download URL for this activity
-			downloadURL, err := s.GetACtivityDownloadUrl(row.RideID)
+			downloadURL, err := s.GetActivityDownloadUrl(row.RideID)
 			if err != nil {
 				// Call callback with error
 				activity := &DownloadedActivity{
@@ -273,7 +271,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 			stopMutex.Unlock()
 
 			// Get download URL for this activity
-			downloadURL, err := s.GetACtivityDownloadUrl(row.RideID)
+			downloadURL, err := s.GetActivityDownloadUrl(row.RideID)
 			if err != nil {
 				// Call callback with error
 				activity := &DownloadedActivity{
