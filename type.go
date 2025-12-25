@@ -45,3 +45,26 @@ type DownloadedActivity struct {
 	Data      []byte
 	Error     error
 }
+
+// DownloadOptions contains configuration for downloading activities
+type DownloadOptions struct {
+	// Extension specifies the file format (FIT, GPX, TCX)
+	Extension Extension
+
+	// BeginTime is the start time filter (optional, empty string to skip)
+	// Format: "2006-01-02", only accept this format
+	BeginTime string
+
+	// EndTime is the end time filter (optional, empty string to skip)
+	// Format: "2006-01-03", only accept this format
+	EndTime string
+
+	// MaxConcurrency is the maximum number of concurrent downloads
+	// Only used in DownloadAllActivitiesWithConcurrency
+	// Default: 5 (if set to 0)
+	MaxConcurrency int
+
+	// Callback is called for each downloaded activity
+	// Return true to continue, false to stop downloading
+	Callback DownloadCallback
+}

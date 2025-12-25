@@ -37,25 +37,28 @@ client := igpsportsync.New(config)
 #### Serial Download
 
 ```go
-err := client.DownloadAllActivities(igpsportsync.FIT, func(activity *igpsportsync.DownloadedActivity) bool {
-    if activity.Error != nil {
-        fmt.Printf("Error: %v\n", activity.Error)
+err := client.DownloadAllActivities(igpsportsync.DownloadOptions{
+    Extension: igpsportsync.FIT,
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+        if activity.Error != nil {
+            fmt.Printf("Error: %v\n", activity.Error)
+            return true // Continue
+        }
+        
+        fmt.Printf("Downloaded: %d bytes\n", len(activity.Data))
+        // Process activity data here
         return true // Continue
-    }
-    
-    fmt.Printf("Downloaded: %d bytes\n", len(activity.Data))
-    // Process activity data here
-    return true // Continue
+    },
 })
-```
-
-#### Concurrent Download (Recommended for large datasets)
+```#### Concurrent Download (Recommended for large datasets)
 
 ```go
-err := client.DownloadAllActivitiesWithConcurrency(
-    igpsportsync.FIT,
-    5, // Max 5 concurrent downloads
-    func(activity *igpsportsync.DownloadedActivity) bool {
+err := client.DownloadAllActivitiesWithConcurrency(igpsportsync.DownloadOptions{
+    Extension:      igpsportsync.FIT,
+    BeginTime:      "", // optional
+    EndTime:        "", // optional
+    MaxConcurrency: 5,  // Max 5 concurrent downloads
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
         if activity.Error != nil {
             fmt.Printf("Error: %v\n", activity.Error)
             return true
@@ -65,7 +68,7 @@ err := client.DownloadAllActivitiesWithConcurrency(
         saveFile(activity)
         return true
     },
-)
+})
 ```
 
 ## File Formats
@@ -96,28 +99,35 @@ config := igpsportsync.Config{
 ### Pattern 1: Save to Files
 
 ```go
-client.DownloadAllActivities(igpsportsync.FIT, func(activity *igpsportsync.DownloadedActivity) bool {
-    if activity.Error != nil {
+client.DownloadAllActivities(igpsportsync.DownloadOptions{
+    Extension: igpsportsync.FIT,
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+        if activity.Error != nil {
+            return true
+        }
+        
+        filename := fmt.Sprintf("activities/%d.fit", activity.RideID)
+        os.WriteFile(filename, activity.Data, 0644)
         return true
-    }
-    
-    filename := fmt.Sprintf("activities/%d.fit", activity.RideID)
-    os.WriteFile(filename, activity.Data, 0644)
-    return true
+    },
 })
 ```
 
 ### Pattern 2: Upload to Cloud Storage
 
 ```go
-client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *igpsportsync.DownloadedActivity) bool {
-    if activity.Error != nil {
+client.DownloadAllActivitiesWithConcurrency(igpsportsync.DownloadOptions{
+    Extension:      igpsportsync.FIT,
+    MaxConcurrency: 5,
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+        if activity.Error != nil {
+            return true
+        }
+        
+        // Upload to S3, OSS, or other cloud storage
+        uploadToOSS(activity.Data, activity.FileName)
         return true
-    }
-    
-    // Upload to S3, OSS, or other cloud storage
-    uploadToOSS(activity.Data, activity.FileName)
-    return true
+    },
 })
 ```
 
@@ -127,14 +137,17 @@ client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *
 var count, total int
 var mu sync.Mutex
 
-client.DownloadAllActivities(igpsportsync.FIT, func(activity *igpsportsync.DownloadedActivity) bool {
-    mu.Lock()
-    count++
-    fmt.Printf("Processing %d/%d\n", count, total)
-    mu.Unlock()
-    
-    process(activity)
-    return true
+client.DownloadAllActivities(igpsportsync.DownloadOptions{
+    Extension: igpsportsync.FIT,
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+        mu.Lock()
+        count++
+        fmt.Printf("Processing %d/%d\n", count, total)
+        mu.Unlock()
+        
+        process(activity)
+        return true
+    },
 })
 ```
 

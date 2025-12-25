@@ -43,15 +43,18 @@ func main() {
     client := igpsportsync.New(config)
 
     // Download activities serially
-    client.DownloadAllActivities(igpsportsync.FIT, func(activity *igpsportsync.DownloadedActivity) bool {
-        if activity.Error != nil {
-            fmt.Printf("Error downloading activity %d: %v\n", activity.RideID, activity.Error)
-            return true // Continue with next activity
-        }
+    client.DownloadAllActivities(igpsportsync.DownloadOptions{
+        Extension: igpsportsync.FIT,
+        Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+            if activity.Error != nil {
+                fmt.Printf("Error downloading activity %d: %v\n", activity.RideID, activity.Error)
+                return true // Continue with next activity
+            }
 
-        fmt.Printf("Downloaded activity %d: %d bytes\n", activity.RideID, len(activity.Data))
-        // Process the activity data (e.g., save to file, upload to OSS)
-        return true // Continue
+            fmt.Printf("Downloaded activity %d: %d bytes\n", activity.RideID, len(activity.Data))
+            // Process the activity data (e.g., save to file, upload to OSS)
+            return true // Continue
+        },
     })
 }
 ```
@@ -62,15 +65,19 @@ For better performance, use concurrent downloads:
 
 ```go
 // Download with 5 concurrent workers
-client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *igpsportsync.DownloadedActivity) bool {
-    if activity.Error != nil {
-        fmt.Printf("Error: %v\n", activity.Error)
+client.DownloadAllActivitiesWithConcurrency(igpsportsync.DownloadOptions{
+    Extension:      igpsportsync.FIT,
+    MaxConcurrency: 5,
+    Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+        if activity.Error != nil {
+            fmt.Printf("Error: %v\n", activity.Error)
+            return true
+        }
+        
+        // Upload to OSS or save to disk
+        saveActivity(activity.Data, activity.RideID)
         return true
-    }
-    
-    // Upload to OSS or save to disk
-    saveActivity(activity.Data, activity.RideID)
-    return true
+    },
 })
 ```
 
@@ -86,9 +93,9 @@ client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *
 ### Methods
 
 - `New(config Config) *IgpsportSync`: Create a new client
-- `GetActivityList(pageNo int, ext Extension) (*ActivityListResponse, error)`: Get activities for a specific page
-- `DownloadAllActivities(ext Extension, callback DownloadCallback) error`: Download all activities serially
-- `DownloadAllActivitiesWithConcurrency(ext Extension, maxConcurrency int, callback DownloadCallback) error`: Download activities with concurrency
+- `GetActivityList(pageNo int, beginTime string, endTime string, ext Extension) (*ActivityListResponse, error)`: Get activities for a specific page with optional time range filter
+- `DownloadAllActivities(options DownloadOptions) error`: Download all activities serially
+- `DownloadAllActivitiesWithConcurrency(options DownloadOptions) error`: Download activities with concurrency
 
 ## Documentation
 

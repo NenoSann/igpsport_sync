@@ -55,17 +55,19 @@ func New(config Config) (*IgpsportSync, error) {
 }
 
 // query activity list
-func (s *IgpsportSync) GetActivityList(pageNo int, ext Extension) (resp *ActivityListResponse, err error) {
+func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime string, ext Extension) (resp *ActivityListResponse, err error) {
 	if pageNo < 1 {
 		return nil, fmt.Errorf("pageNo must be greater than 0")
 	}
 
 	// Build query parameters
 	query := map[string]string{
-		"pageNo":   strconv.Itoa(pageNo),
-		"pageSize": strconv.Itoa(s.Config.PageSize),
-		"sort":     "1",
-		"reqType":  string(ext),
+		"pageNo":    strconv.Itoa(pageNo),
+		"pageSize":  strconv.Itoa(s.Config.PageSize),
+		"beginTime": beginTime,
+		"endTime":   endTime,
+		"sort":      "1",
+		"reqType":   string(ext),
 	}
 
 	// Create HTTP request with query parameters
@@ -77,6 +79,9 @@ func (s *IgpsportSync) GetActivityList(pageNo int, ext Extension) (resp *Activit
 	// Add query parameters
 	q := req.URL.Query()
 	for key, value := range query {
+		if value == "" {
+			continue
+		}
 		q.Add(key, value)
 	}
 	req.URL.RawQuery = q.Encode()
@@ -168,15 +173,15 @@ type DownloadCallback func(activity *DownloadedActivity) bool
 // It calls the callback function for each downloaded file
 // The callback receives a DownloadedActivity with either Data (on success) or Error (on failure)
 // Returning false from the callback will stop the download process
-func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCallback) error {
-	if callback == nil {
+func (s *IgpsportSync) DownloadAllActivities(options DownloadOptions) error {
+	if options.Callback == nil {
 		return fmt.Errorf("callback function is required")
 	}
 
 	page := 1
 	for {
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, ext)
+		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime, options.Extension)
 		if err != nil {
 			return fmt.Errorf("error getting activity list page %d: %v", page, err)
 		}
@@ -193,7 +198,7 @@ func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCal
 					StartTime: row.StartTime,
 					Error:     fmt.Errorf("error getting download URL: %v", err),
 				}
-				if !callback(activity) {
+				if !options.Callback(activity) {
 					return nil // Stop downloading
 				}
 				continue
@@ -207,14 +212,14 @@ func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCal
 					StartTime: row.StartTime,
 					Error:     fmt.Errorf("empty download URL"),
 				}
-				if !callback(activity) {
+				if !options.Callback(activity) {
 					return nil // Stop downloading
 				}
 				continue
 			}
 
 			// Download the file
-			data, err := s.DownloadFile(*downloadURL, strconv.Itoa(row.RideID), ext)
+			data, err := s.DownloadFile(*downloadURL, strconv.Itoa(row.RideID), options.Extension)
 			activity := &DownloadedActivity{
 				RideID:    row.RideID,
 				Title:     row.Title,
@@ -224,7 +229,7 @@ func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCal
 			}
 
 			// Call callback
-			if !callback(activity) {
+			if !options.Callback(activity) {
 				return nil // Stop downloading
 			}
 		}
@@ -240,16 +245,17 @@ func (s *IgpsportSync) DownloadAllActivities(ext Extension, callback DownloadCal
 }
 
 // DownloadAllActivitiesWithConcurrency downloads all activities with concurrent control
-// maxConcurrency: maximum number of concurrent downloads (must be > 0)
-// callback: called for each downloaded activity, return false to stop
 // This method uses worker goroutines to download files in parallel
-func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxConcurrency int, callback DownloadCallback) error {
-	if callback == nil {
+// If MaxConcurrency is 0 or not set, defaults to 5
+func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(options DownloadOptions) error {
+	if options.Callback == nil {
 		return fmt.Errorf("callback function is required")
 	}
 
+	// Set default concurrency if not specified
+	maxConcurrency := options.MaxConcurrency
 	if maxConcurrency <= 0 {
-		return fmt.Errorf("maxConcurrency must be greater than 0")
+		maxConcurrency = 5
 	}
 
 	// Create channels for work distribution and synchronization
@@ -280,7 +286,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 					StartTime: row.StartTime,
 					Error:     fmt.Errorf("error getting download URL: %v", err),
 				}
-				if !callback(activity) {
+				if !options.Callback(activity) {
 					stopMutex.Lock()
 					shouldStop = true
 					stopMutex.Unlock()
@@ -296,7 +302,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 					StartTime: row.StartTime,
 					Error:     fmt.Errorf("empty download URL"),
 				}
-				if !callback(activity) {
+				if !options.Callback(activity) {
 					stopMutex.Lock()
 					shouldStop = true
 					stopMutex.Unlock()
@@ -305,7 +311,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 			}
 
 			// Download the file
-			data, err := s.DownloadFile(*downloadURL, strconv.Itoa(row.RideID), ext)
+			data, err := s.DownloadFile(*downloadURL, strconv.Itoa(row.RideID), options.Extension)
 			activity := &DownloadedActivity{
 				RideID:    row.RideID,
 				Title:     row.Title,
@@ -315,7 +321,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 			}
 
 			// Call callback
-			if !callback(activity) {
+			if !options.Callback(activity) {
 				stopMutex.Lock()
 				shouldStop = true
 				stopMutex.Unlock()
@@ -342,7 +348,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(ext Extension, maxCo
 		stopMutex.Unlock()
 
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, ext)
+		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime, options.Extension)
 		if err != nil {
 			close(workChan)
 			wg.Wait()

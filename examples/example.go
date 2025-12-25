@@ -29,16 +29,19 @@ func example1SerialDownload() {
 		PageSize: 20,
 	}
 
-	client := igpsportsync.New(config)
+	client, err := igpsportsync.New(config)
 
-	err := client.DownloadAllActivities(igpsportsync.FIT, func(activity *igpsportsync.DownloadedActivity) bool {
-		if activity.Error != nil {
-			fmt.Printf("✗ Error downloading activity %d: %v\n", activity.RideID, activity.Error)
-			return true // Continue with next activity
-		}
+	err = client.DownloadAllActivities(igpsportsync.DownloadOptions{
+		Extension: igpsportsync.FIT,
+		Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+			if activity.Error != nil {
+				fmt.Printf("✗ Error downloading activity %d: %v\n", activity.RideID, activity.Error)
+				return true // Continue with next activity
+			}
 
-		fmt.Printf("✓ Downloaded activity %d: %d bytes\n", activity.RideID, len(activity.Data))
-		return true // Continue
+			fmt.Printf("✓ Downloaded activity %d: %d bytes\n", activity.RideID, len(activity.Data))
+			return true // Continue
+		},
 	})
 
 	if err != nil {
@@ -57,16 +60,24 @@ func example2ConcurrentDownload() {
 		PageSize: 20,
 	}
 
-	client := igpsportsync.New(config)
+	client, err := igpsportsync.New(config)
+	if err != nil {
+		fmt.Printf("Fatal error: %v\n", err)
+		return
+	}
 
-	err := client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *igpsportsync.DownloadedActivity) bool {
-		if activity.Error != nil {
-			fmt.Printf("✗ Error: %v\n", activity.Error)
+	err = client.DownloadAllActivitiesWithConcurrency(igpsportsync.DownloadOptions{
+		Extension:      igpsportsync.FIT,
+		MaxConcurrency: 5,
+		Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+			if activity.Error != nil {
+				fmt.Printf("✗ Error: %v\n", activity.Error)
+				return true
+			}
+
+			fmt.Printf("✓ Activity %d: %d bytes\n", activity.RideID, len(activity.Data))
 			return true
-		}
-
-		fmt.Printf("✓ Activity %d: %d bytes\n", activity.RideID, len(activity.Data))
-		return true
+		},
 	})
 
 	if err != nil {
@@ -85,7 +96,11 @@ func example3WithStatistics() {
 		PageSize: 20,
 	}
 
-	client := igpsportsync.New(config)
+	client, err := igpsportsync.New(config)
+	if err != nil {
+		fmt.Printf("Fatal error: %v\n", err)
+		return
+	}
 
 	stats := struct {
 		Total      int
@@ -95,22 +110,26 @@ func example3WithStatistics() {
 		mu         sync.Mutex
 	}{}
 
-	err := client.DownloadAllActivitiesWithConcurrency(igpsportsync.FIT, 5, func(activity *igpsportsync.DownloadedActivity) bool {
-		stats.mu.Lock()
-		defer stats.mu.Unlock()
+	err = client.DownloadAllActivitiesWithConcurrency(igpsportsync.DownloadOptions{
+		Extension:      igpsportsync.FIT,
+		MaxConcurrency: 5,
+		Callback: func(activity *igpsportsync.DownloadedActivity) bool {
+			stats.mu.Lock()
+			defer stats.mu.Unlock()
 
-		stats.Total++
+			stats.Total++
 
-		if activity.Error != nil {
-			stats.Failed++
-			fmt.Printf("[%d] ✗ Activity %d: %v\n", stats.Total, activity.RideID, activity.Error)
-		} else {
-			stats.Successful++
-			stats.TotalBytes += int64(len(activity.Data))
-			fmt.Printf("[%d] ✓ Activity %d: %d bytes\n", stats.Total, activity.RideID, len(activity.Data))
-		}
+			if activity.Error != nil {
+				stats.Failed++
+				fmt.Printf("[%d] ✗ Activity %d: %v\n", stats.Total, activity.RideID, activity.Error)
+			} else {
+				stats.Successful++
+				stats.TotalBytes += int64(len(activity.Data))
+				fmt.Printf("[%d] ✓ Activity %d: %d bytes\n", stats.Total, activity.RideID, len(activity.Data))
+			}
 
-		return true
+			return true
+		},
 	})
 
 	if err != nil {
