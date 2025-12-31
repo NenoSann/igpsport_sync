@@ -17,11 +17,11 @@ const LOGIN_URL = BASE_URL + "auth/account/login"
 const ACTIVITY_URL = BASE_URL + "web-gateway/web-analyze/activity/"
 const QUERY_URL = ACTIVITY_URL + "queryMyActivity"
 const DOWNLOAD_URL = ACTIVITY_URL + "getDownloadUrl/"
+const DEFAULT_PAGE_SIZE = 20
 
 type Config struct {
 	Username string
 	Password string
-	PageSize int
 }
 
 type IgpsportSync struct {
@@ -55,7 +55,7 @@ func New(config Config) (*IgpsportSync, error) {
 }
 
 // query activity list
-func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime string) (resp *ActivityListResponse, err error) {
+func (s *IgpsportSync) GetActivityList(pageNo int, pageSize int, beginTime string, endTime string) (resp *ActivityListResponse, err error) {
 	if pageNo < 1 {
 		return nil, fmt.Errorf("pageNo must be greater than 0")
 	}
@@ -63,7 +63,7 @@ func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime str
 	// Build query parameters
 	query := map[string]string{
 		"pageNo":    strconv.Itoa(pageNo),
-		"pageSize":  strconv.Itoa(s.Config.PageSize),
+		"pageSize":  strconv.Itoa(pageSize),
 		"beginTime": beginTime,
 		"endTime":   endTime,
 		"sort":      "1",
@@ -181,7 +181,7 @@ func (s *IgpsportSync) DownloadAllActivities(options DownloadOptions) error {
 	page := 1
 	for {
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime)
+		resp, err := s.GetActivityList(page, DEFAULT_PAGE_SIZE, options.BeginTime, options.EndTime)
 		if err != nil {
 			return fmt.Errorf("error getting activity list page %d: %v", page, err)
 		}
@@ -348,7 +348,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(options DownloadOpti
 		stopMutex.Unlock()
 
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime)
+		resp, err := s.GetActivityList(page, DEFAULT_PAGE_SIZE, options.BeginTime, options.EndTime)
 		if err != nil {
 			close(workChan)
 			wg.Wait()

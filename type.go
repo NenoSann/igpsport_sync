@@ -18,10 +18,15 @@ type ActivityRow struct {
 type ActivityListData struct {
 	Rows      []ActivityRow `json:"rows"`
 	TotalPage int           `json:"totalPage"`
+	PageNo    int           `json:"pageNo"`
+	PageSize  int           `json:"pageSize"`
+	TotalRows int           `json:"totalRows"`
 }
 
 type ActivityListResponse struct {
-	Data ActivityListData `json:"data"`
+	Code    int              `json:"code"`
+	Message string           `json:"message"`
+	Data    ActivityListData `json:"data"`
 }
 
 type LoginResponse struct {
