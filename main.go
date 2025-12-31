@@ -55,7 +55,7 @@ func New(config Config) (*IgpsportSync, error) {
 }
 
 // query activity list
-func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime string, ext Extension) (resp *ActivityListResponse, err error) {
+func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime string) (resp *ActivityListResponse, err error) {
 	if pageNo < 1 {
 		return nil, fmt.Errorf("pageNo must be greater than 0")
 	}
@@ -67,7 +67,7 @@ func (s *IgpsportSync) GetActivityList(pageNo int, beginTime string, endTime str
 		"beginTime": beginTime,
 		"endTime":   endTime,
 		"sort":      "1",
-		"reqType":   string(ext),
+		"reqType":   "1",
 	}
 
 	// Create HTTP request with query parameters
@@ -181,7 +181,7 @@ func (s *IgpsportSync) DownloadAllActivities(options DownloadOptions) error {
 	page := 1
 	for {
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime, options.Extension)
+		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime)
 		if err != nil {
 			return fmt.Errorf("error getting activity list page %d: %v", page, err)
 		}
@@ -348,7 +348,7 @@ func (s *IgpsportSync) DownloadAllActivitiesWithConcurrency(options DownloadOpti
 		stopMutex.Unlock()
 
 		// Get activity list for current page
-		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime, options.Extension)
+		resp, err := s.GetActivityList(page, options.BeginTime, options.EndTime)
 		if err != nil {
 			close(workChan)
 			wg.Wait()

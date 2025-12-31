@@ -9,9 +9,10 @@ const (
 )
 
 type ActivityRow struct {
-	RideID    int    `json:"rideId"`
-	Title     string `json:"title"`
-	StartTime string `json:"startTime"`
+	RideID       int     `json:"rideId"`
+	Title        string  `json:"title"`
+	RideDistance float64 `json:"rideDistance"`
+	StartTime    string  `json:"startTime"`
 }
 
 type ActivityListData struct {
