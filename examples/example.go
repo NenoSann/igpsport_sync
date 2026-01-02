@@ -26,7 +26,6 @@ func example1SerialDownload() {
 	config := igpsportsync.Config{
 		Username: os.Getenv("IGPSPORT_USERNAME"),
 		Password: os.Getenv("IGPSPORT_PASSWORD"),
-		PageSize: 20,
 	}
 
 	client, err := igpsportsync.New(config)
@@ -57,7 +56,6 @@ func example2ConcurrentDownload() {
 	config := igpsportsync.Config{
 		Username: os.Getenv("IGPSPORT_USERNAME"),
 		Password: os.Getenv("IGPSPORT_PASSWORD"),
-		PageSize: 20,
 	}
 
 	client, err := igpsportsync.New(config)
@@ -93,7 +91,6 @@ func example3WithStatistics() {
 	config := igpsportsync.Config{
 		Username: os.Getenv("IGPSPORT_USERNAME"),
 		Password: os.Getenv("IGPSPORT_PASSWORD"),
-		PageSize: 20,
 	}
 
 	client, err := igpsportsync.New(config)
